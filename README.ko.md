@@ -8,7 +8,7 @@
 
 ![Hilo — 인라인 마크다운/위키링크가 하이라이트 안에서 살아있고, 하이라이트 안에서 다시 색을 지정하면 자동 분할까지](assets/screenshots/demo-01-hero.png)
 
-▶ **[39초 데모 영상 →](https://youtube.com/@opellen-dev)**
+▶ **[39초 데모 영상 →](https://youtu.be/fLbVhfi5H6c)**
 
 ---
 

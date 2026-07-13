@@ -8,7 +8,7 @@
 
 ![Hilo — multi-color highlights with inline markdown, wikilinks, and mid-highlight color splits all intact](assets/screenshots/demo-01-hero.png)
 
-▶ **[Watch the 39-second demo on YouTube](https://youtube.com/@opellen-dev)**
+▶ **[Watch the 39-second demo on YouTube](https://youtu.be/fLbVhfi5H6c)**
 
 ---
 
