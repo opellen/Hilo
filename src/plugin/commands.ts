@@ -42,6 +42,7 @@ export function registerOpenPaletteCommand(plugin: NativeHighlightPlugin): void 
 	plugin.addCommand({
 		id: 'open-palette',
 		name: t('commands.openPalette'),
+		icon: 'highlighter',
 		editorCallback: (editor) => {
 			const menu = new Menu();
 			const added = populateMenu(menu, plugin, editor);
@@ -67,6 +68,7 @@ export function registerUnhighlightCommand(plugin: NativeHighlightPlugin): void 
 	plugin.addCommand({
 		id: 'unhighlight',
 		name: t('commands.unhighlight'),
+		icon: 'eraser',
 		editorCheckCallback: (checking, editor) => {
 			const cursor = editor.getCursor('head');
 			const active = findHighlightAt(editor, cursor.line, cursor.ch);
