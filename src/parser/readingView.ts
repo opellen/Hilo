@@ -15,9 +15,12 @@ export function createColorMarkPostProcessor(
 			const textNode = first as Text;
 			const result = parseColorPrefix(textNode.data);
 			if (!result) continue;
-			mark.classList.add('hl-' + result.color);
 			const vars = colorMap.get(result.color);
+			// Only stamp the hl-* class and CSS vars when the slug is known. Unknown
+			// slugs get no class, so styles.css doesn't match and Obsidian's native
+			// ==text== yellow shows through.
 			if (vars) {
+				mark.classList.add('hl-' + result.color);
 				mark.style.setProperty('--hl-bg', vars.bg);
 				mark.style.setProperty('--hl-underline', vars.underline);
 			}

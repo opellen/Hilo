@@ -1,6 +1,6 @@
 import type { Editor, MarkdownFileInfo, MarkdownView, Menu, MenuItem } from 'obsidian';
 import type NativeHighlightPlugin from './main';
-import type { HighlightColor } from '../settings/data';
+import { getActiveColors, isBuiltinColorSlug, isLockedBuiltinColor, resolveBuiltinDisplayHex, type HighlightColor, type PaletteId } from '../settings/data';
 import { changeColor, findHighlightAt, selectionContainsHighlight, unhighlight, unhighlightSelection } from './actions';
 import { requestWrapWithColor } from './wrapFlow';
 import { t } from '../i18n';
@@ -24,11 +24,15 @@ function styleColorMenuItem(item: MenuItem, hex: string): void {
 function addColorMenuItem(
 	menu: Menu,
 	color: HighlightColor,
+	paletteId: PaletteId,
 	onClick: () => void,
 ): void {
 	menu.addItem((si) => {
 		si.setTitle(capitalize(color.slug)).setIcon('highlighter').onClick(onClick);
-		styleColorMenuItem(si, color.hex);
+		const displayHex = isLockedBuiltinColor(paletteId, color.slug) && isBuiltinColorSlug(color.slug)
+			? resolveBuiltinDisplayHex(color.slug)
+			: color.hex;
+		styleColorMenuItem(si, displayHex);
 	});
 }
 
@@ -40,7 +44,8 @@ export function populateMenu(
 	const cursor = editor.getCursor('head');
 	const active = findHighlightAt(editor, cursor.line, cursor.ch);
 	const hasSelection = editor.somethingSelected();
-	const activeColors = plugin.settings.colors.filter((c) => c.enabled);
+	const activeColors = getActiveColors(plugin.settings).filter((c) => c.enabled);
+	const paletteId = plugin.settings.activePalette;
 
 	if (active && !hasSelection) {
 		menu.addItem((item) => {
@@ -48,7 +53,7 @@ export function populateMenu(
 			const sub = (item as MenuItemWithSubmenu).setSubmenu();
 			for (const c of activeColors) {
 				if (c.slug === active.color) continue;
-				addColorMenuItem(sub, c, () => changeColor(editor, active, c.slug));
+				addColorMenuItem(sub, c, paletteId, () => changeColor(editor, active, c.slug));
 			}
 		});
 		menu.addItem((item) =>
@@ -64,7 +69,7 @@ export function populateMenu(
 			item.setTitle(t('menu.highlight')).setIcon('highlighter');
 			const sub = (item as MenuItemWithSubmenu).setSubmenu();
 			for (const c of activeColors) {
-				addColorMenuItem(sub, c, () => requestWrapWithColor(plugin, editor, c.slug));
+				addColorMenuItem(sub, c, paletteId, () => requestWrapWithColor(plugin, editor, c.slug));
 			}
 		});
 		if (selectionContainsHighlight(editor)) {

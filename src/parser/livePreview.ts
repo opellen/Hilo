@@ -22,12 +22,13 @@ function buildDecorations(
 			const tokenEnd = tokenStart + color.length + 2;
 
 			const vars = colorMap.get(color);
-			const markSpec: { class: string; attributes?: { style: string } } = {
-				class: 'hl-' + color,
-			};
-			// If the slug isn't in the map (unknown/disabled color), still apply the class —
-			// the token markup is preserved, the highlight just renders without color.
+			const markSpec: { class?: string; attributes?: { style: string } } = {};
+			// Only stamp the hl-* class and CSS vars when the slug is known. Unknown
+			// slugs get no class, so the neutralizer in styles.css doesn't match and
+			// Obsidian's native ==text== yellow shows through — the highlight stays
+			// visible as if no slug had been written.
 			if (vars) {
+				markSpec.class = 'hl-' + color;
 				markSpec.attributes = {
 					style: `--hl-bg: ${vars.bg}; --hl-underline: ${vars.underline};`,
 				};

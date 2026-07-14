@@ -1,5 +1,19 @@
 import { describe, it, expect } from 'vitest';
-import { SLUG_RE, HEX_RE, DEFAULT_SETTINGS } from './data';
+import {
+	SLUG_RE,
+	HEX_RE,
+	DEFAULT_SETTINGS,
+	DEFAULT_PALETTE_COLORS,
+	BUILTIN_PALETTE_COLORS,
+	BUILTIN_COLOR_SLUGS,
+	builtinCssVar,
+	builtinUnderlineCss,
+	cssColorToHex,
+	getActiveColors,
+	isLockedBuiltinColor,
+	migrateSettings,
+	restoreBuiltinColors,
+} from './data';
 
 describe('SLUG_RE', () => {
 	it('accepts lowercase letter slug', () => {
@@ -55,23 +69,113 @@ describe('HEX_RE', () => {
 });
 
 describe('DEFAULT_SETTINGS', () => {
-	it('has 3 default colors', () => {
-		expect(DEFAULT_SETTINGS.colors).toHaveLength(3);
+	it('has default + builtin palettes', () => {
+		expect(DEFAULT_SETTINGS.palettes.map((p) => p.id)).toEqual(['default', 'builtin']);
+	});
+	it('starts on default palette', () => {
+		expect(DEFAULT_SETTINGS.activePalette).toBe('default');
+	});
+	it('default palette has 3 colors', () => {
+		expect(getActiveColors(DEFAULT_SETTINGS)).toHaveLength(3);
 	});
 	it('uses default style', () => {
 		expect(DEFAULT_SETTINGS.style).toBe('default');
 	});
 	it('all default colors are enabled', () => {
-		expect(DEFAULT_SETTINGS.colors.every((c) => c.enabled)).toBe(true);
+		expect(DEFAULT_PALETTE_COLORS.every((c) => c.enabled)).toBe(true);
 	});
 	it('all default slugs pass SLUG_RE', () => {
-		expect(DEFAULT_SETTINGS.colors.every((c) => SLUG_RE.test(c.slug))).toBe(true);
+		expect(DEFAULT_PALETTE_COLORS.every((c) => SLUG_RE.test(c.slug))).toBe(true);
+		expect(BUILTIN_PALETTE_COLORS.every((c) => SLUG_RE.test(c.slug))).toBe(true);
 	});
-	it('all default hex values pass HEX_RE', () => {
-		expect(DEFAULT_SETTINGS.colors.every((c) => HEX_RE.test(c.hex))).toBe(true);
+	it('default palette hex values pass HEX_RE; builtin locked rows store empty hex', () => {
+		expect(DEFAULT_PALETTE_COLORS.every((c) => HEX_RE.test(c.hex))).toBe(true);
+		expect(BUILTIN_PALETTE_COLORS.every((c) => c.hex === '')).toBe(true);
 	});
-	it('contains yellow, red, green', () => {
-		const slugs = DEFAULT_SETTINGS.colors.map((c) => c.slug);
+	it('default palette contains yellow, red, green', () => {
+		const slugs = DEFAULT_PALETTE_COLORS.map((c) => c.slug);
 		expect(slugs).toEqual(['yellow', 'red', 'green']);
+	});
+	it('builtin palette has Obsidian extended colors', () => {
+		const slugs = BUILTIN_PALETTE_COLORS.map((c) => c.slug);
+		expect(slugs).toEqual(['red', 'orange', 'yellow', 'green', 'cyan', 'blue', 'purple', 'pink']);
+	});
+});
+
+describe('isLockedBuiltinColor', () => {
+	it('locks only the eight Obsidian slugs in the builtin palette', () => {
+		expect(isLockedBuiltinColor('builtin', 'red')).toBe(true);
+		expect(isLockedBuiltinColor('builtin', 'custom')).toBe(false);
+		expect(isLockedBuiltinColor('default', 'red')).toBe(false);
+	});
+});
+
+describe('builtinCssVar', () => {
+	it('maps slug to Obsidian theme token', () => {
+		expect(builtinCssVar('orange')).toBe('var(--color-orange)');
+		expect(builtinUnderlineCss('orange')).toBe('color-mix(in srgb, var(--color-orange), black 30%)');
+	});
+});
+
+describe('cssColorToHex', () => {
+	it('normalizes hex and rgb()', () => {
+		expect(cssColorToHex('#E9973F')).toBe('#e9973f');
+		expect(cssColorToHex('#abc')).toBe('#aabbcc');
+		expect(cssColorToHex('rgb(233, 151, 63)')).toBe('#e9973f');
+	});
+	it('returns null for empty/unknown', () => {
+		expect(cssColorToHex('')).toBeNull();
+		expect(cssColorToHex('orange')).toBeNull();
+	});
+});
+
+describe('restoreBuiltinColors', () => {
+	it('re-adds missing canonical slugs without removing custom ones', () => {
+		const colors = [
+			{ slug: 'red', hex: '', enabled: false },
+			{ slug: 'custom', hex: '#abcdef', enabled: true },
+		];
+		restoreBuiltinColors(colors);
+		const slugs = colors.map((c) => c.slug);
+		for (const slug of BUILTIN_COLOR_SLUGS) {
+			expect(slugs).toContain(slug);
+		}
+		expect(slugs).toContain('custom');
+		expect(colors.find((c) => c.slug === 'red')?.enabled).toBe(false);
+	});
+});
+
+describe('migrateSettings', () => {
+	it('returns defaults for empty input', () => {
+		const s = migrateSettings(null);
+		expect(s.activePalette).toBe('default');
+		expect(s.palettes).toHaveLength(2);
+		expect(getActiveColors(s).map((c) => c.slug)).toEqual(['yellow', 'red', 'green']);
+	});
+	it('migrates legacy flat colors into default palette', () => {
+		const s = migrateSettings({
+			colors: [{ slug: 'custom', hex: '#abcdef', enabled: true }],
+			style: 'lowlight',
+		});
+		expect(s.style).toBe('lowlight');
+		expect(s.activePalette).toBe('default');
+		expect(getActiveColors(s)).toEqual([{ slug: 'custom', hex: '#abcdef', enabled: true }]);
+		expect(s.palettes.find((p) => p.id === 'builtin')?.colors).toHaveLength(8);
+	});
+	it('preserves palettes shape when already migrated', () => {
+		const s = migrateSettings({
+			palettes: [
+				{ id: 'default', colors: [{ slug: 'a', hex: '#111111', enabled: true }] },
+				{ id: 'builtin', colors: [{ slug: 'b', hex: '#222222', enabled: false }] },
+			],
+			activePalette: 'builtin',
+			style: 'default',
+		});
+		expect(s.activePalette).toBe('builtin');
+		expect(getActiveColors(s)).toEqual([{ slug: 'b', hex: '#222222', enabled: false }]);
+	});
+	it('preserves underlined style from legacy saves', () => {
+		const s = migrateSettings({ colors: [], style: 'underlined' });
+		expect(s.style).toBe('underlined');
 	});
 });

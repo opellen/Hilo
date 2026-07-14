@@ -39,10 +39,16 @@ describe('darkerUnderline', () => {
 describe('getColorMap', () => {
 	it('maps each color slug to { bg, underline }', () => {
 		const settings: Settings = {
-			colors: [
-				{ slug: 'yellow', hex: '#fff3a3', enabled: true },
-				{ slug: 'red', hex: '#ffb3b3', enabled: true },
+			palettes: [
+				{
+					id: 'default',
+					colors: [
+						{ slug: 'yellow', hex: '#fff3a3', enabled: true },
+						{ slug: 'red', hex: '#ffb3b3', enabled: true },
+					],
+				},
 			],
+			activePalette: 'default',
 			style: 'default',
 		};
 		const map = getColorMap(settings);
@@ -52,16 +58,70 @@ describe('getColorMap', () => {
 	});
 	it('includes disabled colors too (rendering decides via active class list)', () => {
 		const settings: Settings = {
-			colors: [
-				{ slug: 'yellow', hex: '#fff3a3', enabled: false },
+			palettes: [
+				{
+					id: 'default',
+					colors: [{ slug: 'yellow', hex: '#fff3a3', enabled: false }],
+				},
 			],
+			activePalette: 'default',
 			style: 'default',
 		};
 		const map = getColorMap(settings);
 		expect(map.has('yellow')).toBe(true);
 	});
 	it('empty colors → empty map', () => {
-		const settings: Settings = { colors: [], style: 'default' };
+		const settings: Settings = {
+			palettes: [{ id: 'default', colors: [] }],
+			activePalette: 'default',
+			style: 'default',
+		};
 		expect(getColorMap(settings).size).toBe(0);
+	});
+	it('includes colors from inactive palettes', () => {
+		const settings: Settings = {
+			palettes: [
+				{ id: 'default', colors: [{ slug: 'yellow', hex: '#fff3a3', enabled: true }] },
+				{ id: 'builtin', colors: [{ slug: 'cyan', hex: '', enabled: true }] },
+			],
+			activePalette: 'default',
+			style: 'default',
+		};
+		const map = getColorMap(settings);
+		expect(map.has('yellow')).toBe(true);
+		expect(map.get('cyan')?.bg).toBe('var(--color-cyan)');
+	});
+	it('active palette wins on slug conflicts', () => {
+		const settings: Settings = {
+			palettes: [
+				{ id: 'default', colors: [{ slug: 'red', hex: '#ffb3b3', enabled: true }] },
+				{ id: 'builtin', colors: [{ slug: 'red', hex: '', enabled: true }] },
+			],
+			activePalette: 'default',
+			style: 'default',
+		};
+		expect(getColorMap(settings).get('red')?.bg).toBe('#ffb3b3');
+	});
+	it('builtin locked colors use theme CSS variables', () => {
+		const settings: Settings = {
+			palettes: [
+				{ id: 'builtin', colors: [{ slug: 'red', hex: '#000000', enabled: true }] },
+			],
+			activePalette: 'builtin',
+			style: 'default',
+		};
+		const red = getColorMap(settings).get('red');
+		expect(red?.bg).toBe('var(--color-red)');
+		expect(red?.underline).toBe('color-mix(in srgb, var(--color-red), black 30%)');
+	});
+	it('custom colors in builtin palette keep their stored hex', () => {
+		const settings: Settings = {
+			palettes: [
+				{ id: 'builtin', colors: [{ slug: 'custom', hex: '#abcdef', enabled: true }] },
+			],
+			activePalette: 'builtin',
+			style: 'default',
+		};
+		expect(getColorMap(settings).get('custom')?.bg).toBe('#abcdef');
 	});
 });

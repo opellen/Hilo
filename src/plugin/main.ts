@@ -4,7 +4,7 @@ import { createColorMarkPostProcessor } from '../parser/readingView';
 import { createHighlightLivePreviewExtension } from '../parser/livePreview';
 import { buildContextMenuHandler } from './contextMenu';
 import { registerColorCommands, registerOpenPaletteCommand, registerUnhighlightCommand } from './commands';
-import { DEFAULT_SETTINGS, type Settings } from '../settings/data';
+import { migrateSettings, type Settings } from '../settings/data';
 import { applyHighlightStyle, getColorMap, removeHighlightStyle, type HighlightColorVars } from '../settings/styleInjector';
 import { HighlightSettingTab } from '../settings/tab';
 import { detectLocale, setLocale } from '../i18n';
@@ -37,7 +37,7 @@ export default class NativeHighlightPlugin extends Plugin {
   }
 
   async loadSettings() {
-    this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData()) as Settings;
+    this.settings = migrateSettings((await this.loadData()) as Partial<Settings> | null);
   }
 
   async saveSettings() {

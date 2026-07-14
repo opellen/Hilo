@@ -6,10 +6,20 @@
 
 export interface Locale {
 	settings: {
+		palette: {
+			heading: string;
+			desc: string;
+			options: {
+				default: string;
+				builtin: string;
+			};
+		};
 		colors: {
 			heading: string;
 			desc: string;
 			addButton: string;
+			restoreBuiltin: string;
+			builtinNote: string;
 			row: {
 				moveUp: string;
 				moveDown: string;

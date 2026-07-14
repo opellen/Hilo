@@ -1,6 +1,17 @@
 import { App, PluginSettingTab, Setting, setIcon } from 'obsidian';
 import type NativeHighlightPlugin from '../plugin/main';
-import { HEX_RE, SLUG_RE, type HighlightColor, type HighlightStyle } from './data';
+import {
+	HEX_RE,
+	SLUG_RE,
+	getActiveColors,
+	isBuiltinColorSlug,
+	isLockedBuiltinColor,
+	resolveBuiltinDisplayHex,
+	restoreBuiltinColors,
+	type HighlightColor,
+	type HighlightStyle,
+	type PaletteId,
+} from './data';
 import { commandIdForColor, getHotkeyForCommand, openHotkeyAssignment } from '../plugin/hotkeys';
 import { capitalize } from '../plugin/contextMenu';
 import { darkerUnderline } from './styleInjector';
@@ -25,21 +36,58 @@ export class HighlightSettingTab extends PluginSettingTab {
 		containerEl.empty();
 
 		new Setting(containerEl)
+			.setName(t('settings.palette.heading'))
+			.setDesc(t('settings.palette.desc'))
+			.addDropdown((dd) => {
+				dd.addOption('default', t('settings.palette.options.default'));
+				dd.addOption('builtin', t('settings.palette.options.builtin'));
+				dd.setValue(this.plugin.settings.activePalette);
+				dd.onChange((value) => {
+					void (async () => {
+						this.plugin.settings.activePalette = value as PaletteId;
+						await this.plugin.saveSettings();
+						this.display();
+					})();
+				});
+			});
+
+		new Setting(containerEl)
 			.setName(t('settings.colors.heading'))
 			.setDesc(t('settings.colors.desc'))
 			.setHeading();
 
-		new Setting(containerEl).addButton((btn) =>
+		const colorActions = new Setting(containerEl);
+		if (this.plugin.settings.activePalette === 'builtin') {
+			colorActions.addButton((btn) =>
+				btn.setButtonText(t('settings.colors.restoreBuiltin')).onClick(() => {
+					void (async () => {
+						const palette = this.plugin.settings.palettes.find((p) => p.id === 'builtin');
+						if (!palette) return;
+						restoreBuiltinColors(palette.colors);
+						await this.plugin.saveSettings();
+						this.display();
+					})();
+				}),
+			);
+		}
+		colorActions.addButton((btn) =>
 			btn.setButtonText(t('settings.colors.addButton')).onClick(() => {
 				void (async () => {
-					this.plugin.settings.colors.push({ slug: 'new', hex: '#cccccc', enabled: true });
+					getActiveColors(this.plugin.settings).push({ slug: 'new', hex: '#cccccc', enabled: true });
 					await this.plugin.saveSettings();
 					this.display();
 				})();
 			}),
 		);
 
-		this.plugin.settings.colors.forEach((color, i) => this.renderRow(containerEl, color, i));
+		if (this.plugin.settings.activePalette === 'builtin') {
+			containerEl.createEl('p', {
+				cls: 'od-setting-note',
+				text: t('settings.colors.builtinNote'),
+			});
+		}
+
+		getActiveColors(this.plugin.settings).forEach((color, i) => this.renderRow(containerEl, color, i));
 
 		const styleSetting = new Setting(containerEl)
 			.setName(t('settings.style.heading'))
@@ -75,11 +123,18 @@ export class HighlightSettingTab extends PluginSettingTab {
 	}
 
 	private getFirstColor(): HighlightColor | undefined {
-		return this.plugin.settings.colors.find((c) => c.enabled) ?? this.plugin.settings.colors[0];
+		const colors = getActiveColors(this.plugin.settings);
+		const found = colors.find((c) => c.enabled) ?? colors[0];
+		if (!found) return undefined;
+		// Builtin locked rows store empty hex; resolve the live theme color for the preview swatch.
+		if (isLockedBuiltinColor(this.plugin.settings.activePalette, found.slug) && isBuiltinColorSlug(found.slug)) {
+			return { ...found, hex: resolveBuiltinDisplayHex(found.slug) };
+		}
+		return found;
 	}
 
 	private renderRow(containerEl: HTMLElement, color: HighlightColor, index: number): void {
-		const colors = this.plugin.settings.colors;
+		const colors = getActiveColors(this.plugin.settings);
 		const row = containerEl.createDiv({ cls: 'od-color-row' });
 
 		const upBtn = row.createEl('button', { cls: 'od-arrow', attr: { 'aria-label': t('settings.colors.row.moveUp') } });
@@ -121,60 +176,71 @@ export class HighlightSettingTab extends PluginSettingTab {
 			})();
 		});
 
+		const locked = isLockedBuiltinColor(this.plugin.settings.activePalette, color.slug);
+
 		const slugInput = row.createEl('input', {
 			cls: 'od-slug-input',
 			attr: { type: 'text', value: color.slug, 'aria-label': t('settings.colors.row.slug') },
 		});
 		slugInput.value = color.slug;
-		slugInput.addEventListener('input', () => {
-			void (async () => {
-				const next = slugInput.value;
-				const duplicate = colors.some((c, j) => j !== index && c.slug === next);
-				if (!SLUG_RE.test(next) || duplicate) {
-					slugInput.classList.add('is-invalid');
-					return;
-				}
-				slugInput.classList.remove('is-invalid');
-				colors[index].slug = next;
-				await this.plugin.saveSettings();
-			})();
-		});
+		slugInput.disabled = locked;
+		if (!locked) {
+			slugInput.addEventListener('input', () => {
+				void (async () => {
+					const next = slugInput.value;
+					const duplicate = colors.some((c, j) => j !== index && c.slug === next);
+					if (!SLUG_RE.test(next) || duplicate) {
+						slugInput.classList.add('is-invalid');
+						return;
+					}
+					slugInput.classList.remove('is-invalid');
+					colors[index].slug = next;
+					await this.plugin.saveSettings();
+				})();
+			});
+		}
+		const displayHex =
+			locked && isBuiltinColorSlug(color.slug) ? resolveBuiltinDisplayHex(color.slug) : color.hex;
 
 		const picker = row.createEl('input', {
 			cls: 'od-color-picker',
 			attr: { type: 'color', 'aria-label': t('settings.colors.row.colorPicker') },
 		});
-		picker.value = normalizeHexForPicker(color.hex);
+		picker.value = normalizeHexForPicker(displayHex);
+		picker.disabled = locked;
 
 		const hexInput = row.createEl('input', {
 			cls: 'od-hex-input',
 			attr: { type: 'text', 'aria-label': t('settings.colors.row.hexValue') },
 		});
-		hexInput.value = color.hex;
+		hexInput.value = displayHex;
+		hexInput.disabled = locked;
 
-		picker.addEventListener('input', () => {
-			void (async () => {
-				const next = picker.value;
-				hexInput.value = next;
-				hexInput.classList.remove('is-invalid');
-				colors[index].hex = next;
-				await this.plugin.saveSettings();
-			})();
-		});
+		if (!locked) {
+			picker.addEventListener('input', () => {
+				void (async () => {
+					const next = picker.value;
+					hexInput.value = next;
+					hexInput.classList.remove('is-invalid');
+					colors[index].hex = next;
+					await this.plugin.saveSettings();
+				})();
+			});
 
-		hexInput.addEventListener('input', () => {
-			void (async () => {
-				const next = hexInput.value;
-				if (!HEX_RE.test(next)) {
-					hexInput.classList.add('is-invalid');
-					return;
-				}
-				hexInput.classList.remove('is-invalid');
-				picker.value = normalizeHexForPicker(next);
-				colors[index].hex = next;
-				await this.plugin.saveSettings();
-			})();
-		});
+			hexInput.addEventListener('input', () => {
+				void (async () => {
+					const next = hexInput.value;
+					if (!HEX_RE.test(next)) {
+						hexInput.classList.add('is-invalid');
+						return;
+					}
+					hexInput.classList.remove('is-invalid');
+					picker.value = normalizeHexForPicker(next);
+					colors[index].hex = next;
+					await this.plugin.saveSettings();
+				})();
+			});
+		}
 
 		const hotkey = getHotkeyForCommand(this.plugin, commandIdForColor(color.slug));
 		const hotkeyLabel = hotkey

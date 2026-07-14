@@ -4,10 +4,20 @@ import type { Locale } from './types';
 // to this dictionary when a key is missing.
 export const en: Locale = {
 	settings: {
+		palette: {
+			heading: 'Color palette',
+			desc: 'Switch which color palette is used for your highlights and for the context menus of this plugin. Existing highlights keep rendering even if their slug is not in the active palette.',
+			options: {
+				default: 'Default',
+				builtin: 'Builtin (Obsidian)',
+			},
+		},
 		colors: {
 			heading: 'Highlight colors',
-			desc: 'Manage colors used by the plugin. Disabled colors are hidden from the right-click menu but still rendered in notes.',
+			desc: 'Manage colors in the active palette. Disabled colors are hidden from the right-click menu but still rendered in notes.',
 			addButton: 'Add color',
+			restoreBuiltin: 'Restore builtin colors',
+			builtinNote: 'Note: The color values and names of the builtin colors are not editable. Edit functionality in this palette only works for colors added by the user.',
 			row: {
 				moveUp: 'Move up',
 				moveDown: 'Move down',

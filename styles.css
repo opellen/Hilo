@@ -106,6 +106,12 @@ body.od-style-underlined span[class*="hl-"] {
   box-decoration-break: clone;
 }
 
+.od-setting-note {
+  margin: 0 0 8px;
+  color: var(--text-muted);
+  font-size: var(--font-ui-smaller);
+}
+
 /* ----------------------------------------------------------------------- */
 /* Style preview list in the settings tab description                      */
 /* ----------------------------------------------------------------------- */

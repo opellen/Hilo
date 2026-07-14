@@ -1,4 +1,10 @@
-import type { HighlightStyle, Settings } from './data';
+import {
+	builtinCssVar,
+	builtinUnderlineCss,
+	isBuiltinColorSlug,
+	type HighlightStyle,
+	type Settings,
+} from './data';
 
 const STYLE_BODY_PREFIX = 'od-style-';
 
@@ -7,13 +13,30 @@ export interface HighlightColorVars {
 	underline: string;
 }
 
-/** Build slug → { bg, underline } map from settings. Decoration/post-processor code
+function varsForColor(slug: string, hex: string, paletteId: string): HighlightColorVars {
+	// Locked builtin rows use live Obsidian theme tokens (same as fast-text-color).
+	if (paletteId === 'builtin' && isBuiltinColorSlug(slug)) {
+		return { bg: builtinCssVar(slug), underline: builtinUnderlineCss(slug) };
+	}
+	return { bg: hex, underline: darkerUnderline(hex) };
+}
+
+/** Build slug → { bg, underline } map from settings. Decorations/post-processor code
  *  consumes this and writes the values as inline CSS custom properties on each
- *  highlight element. Replaces the old dynamic <style> rule injection. */
+ *  highlight element. Replaces the old dynamic <style> rule injection.
+ *
+ *  Colors from every palette are included so highlights written under another
+ *  palette keep rendering after a switch. On slug conflicts the active palette wins. */
 export function getColorMap(settings: Settings): Map<string, HighlightColorVars> {
 	const map = new Map<string, HighlightColorVars>();
-	for (const c of settings.colors) {
-		map.set(c.slug, { bg: c.hex, underline: darkerUnderline(c.hex) });
+	const ordered = [
+		...settings.palettes.filter((p) => p.id !== settings.activePalette),
+		...settings.palettes.filter((p) => p.id === settings.activePalette),
+	];
+	for (const palette of ordered) {
+		for (const c of palette.colors) {
+			map.set(c.slug, varsForColor(c.slug, c.hex, palette.id));
+		}
 	}
 	return map;
 }

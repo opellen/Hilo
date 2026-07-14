@@ -1,5 +1,6 @@
 import { App, Editor, Menu, Notice } from 'obsidian';
 import type NativeHighlightPlugin from './main';
+import { getActiveColors } from '../settings/data';
 import { changeColor, findHighlightAt, resolveColorCommandAction, unhighlight } from './actions';
 import { requestWrapWithColor } from './wrapFlow';
 import { capitalize, populateMenu } from './contextMenu';
@@ -21,7 +22,7 @@ export function registerColorCommands(plugin: NativeHighlightPlugin): void {
 	}
 	plugin.registeredColorCommandIds = [];
 
-	for (const color of plugin.settings.colors.filter((c) => c.enabled)) {
+	for (const color of getActiveColors(plugin.settings).filter((c) => c.enabled)) {
 		const id = `wrap-${color.slug}`;
 		plugin.addCommand({
 			id,
