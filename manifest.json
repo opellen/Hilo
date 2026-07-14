@@ -1,7 +1,7 @@
 {
   "id": "hilo",
   "name": "Hilo",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "minAppVersion": "1.5.0",
   "description": "Multi-color highlights using the native ==text== markdown syntax.",
   "author": "San",
