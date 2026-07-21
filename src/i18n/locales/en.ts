@@ -40,6 +40,10 @@ export const en: Locale = {
 				underlined: 'Underlined',
 			},
 		},
+		readability: {
+			heading: 'Auto improve readability',
+			desc: 'Automatically compensates highlight color brightness to improve readability — darkens overly bright colors in dark themes and brightens overly dark colors in light themes.',
+		},
 	},
 	menu: {
 		highlight: 'Highlight',

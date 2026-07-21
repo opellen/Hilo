@@ -14,7 +14,7 @@ import {
 } from './data';
 import { commandIdForColor, getHotkeyForCommand, openHotkeyAssignment } from '../plugin/hotkeys';
 import { capitalize } from '../plugin/contextMenu';
-import { darkerUnderline } from './styleInjector';
+import { compensateForReadability, darkerUnderline, getThemeMode } from './styleInjector';
 import { t } from '../i18n';
 
 const STYLES: HighlightStyle[] = ['default', 'lowlight', 'underlined'];
@@ -105,6 +105,19 @@ export class HighlightSettingTab extends PluginSettingTab {
 
 		const previewEl = styleSetting.descEl.createDiv({ cls: 'od-style-preview-list' });
 		const color = this.getFirstColor();
+		const samples: { el: HTMLSpanElement; style: HighlightStyle }[] = [];
+		const applyPreviewColors = () => {
+			if (!color) return;
+			const readabilityOn = this.plugin.settings.autoReadability !== false;
+			const mode = getThemeMode();
+			for (const { el, style } of samples) {
+				const compensated = style === 'underlined' || !readabilityOn
+					? color.hex
+					: compensateForReadability(color.hex, mode);
+				el.style.setProperty('--hl-bg', compensated);
+				el.style.setProperty('--hl-underline', darkerUnderline(compensated));
+			}
+		};
 		for (const style of STYLES) {
 			const row = previewEl.createDiv({ cls: 'od-style-preview-row' });
 			const demo = row.createSpan({ cls: 'od-style-demo' });
@@ -113,11 +126,23 @@ export class HighlightSettingTab extends PluginSettingTab {
 				cls: 'od-preview-sample',
 				text: t(`settings.style.options.${style}`),
 			});
-			if (color) {
-				sample.style.setProperty('--hl-bg', color.hex);
-				sample.style.setProperty('--hl-underline', darkerUnderline(color.hex));
-			}
+			samples.push({ el: sample, style });
 		}
+		applyPreviewColors();
+
+		new Setting(containerEl)
+			.setName(t('settings.readability.heading'))
+			.setDesc(t('settings.readability.desc'))
+			.addToggle((toggle) => {
+			toggle.setValue(this.plugin.settings.autoReadability !== false);
+			toggle.onChange((value) => {
+				void (async () => {
+					this.plugin.settings.autoReadability = value;
+					await this.plugin.saveSettings();
+					applyPreviewColors();
+				})();
+				});
+			});
 	}
 
 	private getFirstColor(): HighlightColor | undefined {

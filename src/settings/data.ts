@@ -20,6 +20,13 @@ export interface Settings {
 	palettes: ColorPalette[];
 	activePalette: PaletteId;
 	style: HighlightStyle;
+	/**
+	 * When enabled, highlight background brightness is compensated at render
+	 * time to keep text readable: overly bright colors are darkened on dark
+	 * themes, overly dark colors are brightened on light themes. Only affects
+	 * rendering — stored palette hex values are never modified. Defaults to true.
+	 */
+	autoReadability?: boolean;
 }
 
 /** Soft highlight-style seeds (pastel backgrounds). */
@@ -123,6 +130,7 @@ export const DEFAULT_SETTINGS: Settings = {
 	],
 	activePalette: 'builtin',
 	style: 'default',
+	autoReadability: true,
 };
 
 export const SLUG_RE = /^[a-z0-9][a-z0-9-]*$/;
@@ -146,12 +154,17 @@ export function migrateSettings(raw: Partial<Settings> | null | undefined): Sett
 		})),
 		activePalette: DEFAULT_SETTINGS.activePalette,
 		style: DEFAULT_SETTINGS.style,
+		autoReadability: DEFAULT_SETTINGS.autoReadability,
 	};
 
 	if (!raw) return base;
 
 	if (raw.style === 'default' || raw.style === 'lowlight' || raw.style === 'underlined') {
 		base.style = raw.style;
+	}
+
+	if (typeof raw.autoReadability === 'boolean') {
+		base.autoReadability = raw.autoReadability;
 	}
 
 	if (Array.isArray(raw.palettes) && raw.palettes.length > 0) {
