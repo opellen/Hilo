@@ -16,7 +16,7 @@ const STYLE_BODY_PREFIX = 'od-style-';
  */
 const READABILITY_V_TARGET = 0.5;
 
-type ReadabilityMode = 'dark' | 'light';
+export type ReadabilityMode = 'dark' | 'light';
 
 export interface HighlightColorVars {
 	bg: string;
@@ -48,7 +48,7 @@ function varsForColor(slug: string, hex: string, paletteId: string, mode: Readab
 }
 
 /** `'dark'` when a dark Obsidian theme is active, `'light'` otherwise. */
-function getThemeMode(): ReadabilityMode {
+export function getThemeMode(): ReadabilityMode {
 	return typeof document !== 'undefined' && document.body.classList.contains('theme-dark')
 		? 'dark'
 		: 'light';

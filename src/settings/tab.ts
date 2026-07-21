@@ -14,7 +14,7 @@ import {
 } from './data';
 import { commandIdForColor, getHotkeyForCommand, openHotkeyAssignment } from '../plugin/hotkeys';
 import { capitalize } from '../plugin/contextMenu';
-import { darkerUnderline } from './styleInjector';
+import { compensateForReadability, darkerUnderline, getThemeMode } from './styleInjector';
 import { t } from '../i18n';
 
 const STYLES: HighlightStyle[] = ['default', 'lowlight', 'underlined'];
@@ -105,6 +105,18 @@ export class HighlightSettingTab extends PluginSettingTab {
 
 		const previewEl = styleSetting.descEl.createDiv({ cls: 'od-style-preview-list' });
 		const color = this.getFirstColor();
+		const samples: HTMLSpanElement[] = [];
+		const applyPreviewColors = () => {
+			if (!color) return;
+			const bg = this.plugin.settings.autoReadability !== false
+				? compensateForReadability(color.hex, getThemeMode())
+				: color.hex;
+			const underline = darkerUnderline(bg);
+			for (const sample of samples) {
+				sample.style.setProperty('--hl-bg', bg);
+				sample.style.setProperty('--hl-underline', underline);
+			}
+		};
 		for (const style of STYLES) {
 			const row = previewEl.createDiv({ cls: 'od-style-preview-row' });
 			const demo = row.createSpan({ cls: 'od-style-demo' });
@@ -113,11 +125,9 @@ export class HighlightSettingTab extends PluginSettingTab {
 				cls: 'od-preview-sample',
 				text: t(`settings.style.options.${style}`),
 			});
-			if (color) {
-				sample.style.setProperty('--hl-bg', color.hex);
-				sample.style.setProperty('--hl-underline', darkerUnderline(color.hex));
-			}
+			samples.push(sample);
 		}
+		applyPreviewColors();
 
 		new Setting(containerEl)
 			.setName(t('settings.readability.heading'))
@@ -128,6 +138,7 @@ export class HighlightSettingTab extends PluginSettingTab {
 				void (async () => {
 					this.plugin.settings.autoReadability = value;
 					await this.plugin.saveSettings();
+					applyPreviewColors();
 				})();
 				});
 			});
