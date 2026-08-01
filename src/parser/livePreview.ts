@@ -10,6 +10,14 @@ export const refreshDecorationsEffect = StateEffect.define<void>();
 
 const HIGHLIGHT_RE = /==\{([a-z0-9][a-z0-9-]*)\}([^=\n]+(?:=[^=\n]+)*?)==/g;
 
+/**
+ * StateEffect dispatched (via `refreshEditors`) to force the ViewPlugin to
+ * rebuild its decorations even when no doc/viewport/selection changed — e.g.
+ * after the color map was rebuilt because the dark-theme readability option
+ * or the active theme changed.
+ */
+export const refreshHighlightsEffect = StateEffect.define<void>();
+
 function buildDecorations(
 	view: EditorView,
 	colorMap: Map<string, HighlightColorVars>,
@@ -77,3 +85,4 @@ export function createHighlightLivePreviewExtension(
 		{ decorations: v => v.decorations },
 	);
 }
+

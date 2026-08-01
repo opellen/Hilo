@@ -40,6 +40,10 @@ export const ko: Locale = {
 				underlined: '언더라인',
 			},
 		},
+		readability: {
+			heading: '가독성 자동 개선',
+			desc: '강조 색상의 밝기를 자동으로 보정하여 가독성을 높입니다. 다크 테마에서는 너무 밝은 색상을 어둡게, 라이트 테마에서는 너무 어두운 색상을 밝게 만듭니다.',
+		},
 	},
 	menu: {
 		highlight: '강조',

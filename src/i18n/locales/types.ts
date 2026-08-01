@@ -42,6 +42,10 @@ export interface Locale {
 				underlined: string;
 			};
 		};
+		readability: {
+			heading: string;
+			desc: string;
+		};
 	};
 	menu: {
 		highlight: string;

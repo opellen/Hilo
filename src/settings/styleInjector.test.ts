@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { darkerUnderline, getColorMap } from './styleInjector';
+import { compensateForReadability, darkerUnderline, getColorMap } from './styleInjector';
 import type { Settings } from './data';
 
 describe('darkerUnderline', () => {
@@ -33,6 +33,62 @@ describe('darkerUnderline', () => {
 		const l = Number(match![1]);
 		expect(l).toBeGreaterThanOrEqual(22);
 		expect(l).toBeLessThanOrEqual(24);
+	});
+});
+
+describe('compensateForReadability', () => {
+	describe('dark theme', () => {
+		it('leaves already-dark colors unchanged', () => {
+			expect(compensateForReadability('#333333', 'dark')).toBe('#333333');
+		});
+		it('caps HSV Value for bright pastel yellow', () => {
+			const result = compensateForReadability('#fff3a3', 'dark');
+			expect(result).toMatch(/^#[0-9a-f]{6}$/);
+			expect(result).not.toBe('#fff3a3');
+		});
+		it('preserves hue: red stays red', () => {
+			const result = compensateForReadability('#ffb3b3', 'dark');
+			const r = parseInt(result.slice(1, 3), 16);
+			const g = parseInt(result.slice(3, 5), 16);
+			const b = parseInt(result.slice(5, 7), 16);
+			expect(r).toBeGreaterThan(g);
+			expect(r).toBeGreaterThan(b);
+		});
+		it('normalizes 3-digit hex before capping', () => {
+			expect(compensateForReadability('#fff', 'dark')).toMatch(/^#[0-9a-f]{6}$/);
+			expect(compensateForReadability('#fff', 'dark')).not.toBe('#fff');
+		});
+		it('is idempotent on already-capped output', () => {
+			const once = compensateForReadability('#fff3a3', 'dark');
+			expect(compensateForReadability(once, 'dark')).toBe(once);
+		});
+	});
+	describe('light theme', () => {
+		it('leaves already-bright colors unchanged', () => {
+			expect(compensateForReadability('#fff3a3', 'light')).toBe('#fff3a3');
+		});
+		it('floors HSV Value for too-dark colors', () => {
+			const result = compensateForReadability('#333333', 'light');
+			expect(result).toMatch(/^#[0-9a-f]{6}$/);
+			expect(result).not.toBe('#333333');
+		});
+		it('preserves hue: dark red stays red', () => {
+			const result = compensateForReadability('#660000', 'light');
+			const r = parseInt(result.slice(1, 3), 16);
+			const g = parseInt(result.slice(3, 5), 16);
+			const b = parseInt(result.slice(5, 7), 16);
+			expect(r).toBeGreaterThan(g);
+			expect(r).toBeGreaterThan(b);
+		});
+		it('is idempotent on already-floored output', () => {
+			const once = compensateForReadability('#333333', 'light');
+			expect(compensateForReadability(once, 'light')).toBe(once);
+		});
+		it('black (#000) is brightened to a non-black color', () => {
+			const result = compensateForReadability('#000000', 'light');
+			expect(result).not.toBe('#000000');
+			expect(result).not.toBe('#000');
+		});
 	});
 });
 

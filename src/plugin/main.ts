@@ -1,5 +1,6 @@
 import { MarkdownView, Plugin } from 'obsidian';
 import type { EditorView } from '@codemirror/view';
+import { StateEffect } from '@codemirror/state';
 import { createColorMarkPostProcessor } from '../parser/readingView';
 import { createHighlightLivePreviewExtension, refreshDecorationsEffect } from '../parser/livePreview';
 import { buildContextMenuHandler } from './contextMenu';
@@ -26,6 +27,21 @@ export default class NativeHighlightPlugin extends Plugin {
     registerOpenPaletteCommand(this);
     registerUnhighlightCommand(this);
     registerColorCommands(this);
+
+    // The color map depends on the active theme (theme-dark class + computed
+    // --color-* vars), which may not be applied yet during onload. Rebuild
+    // once the layout is ready, and whenever the theme changes afterwards.
+    if (!this.app.workspace.layoutReady) {
+      this.app.workspace.onLayoutReady(() => {
+        this.rebuildColorMap();
+        this.refreshEditors();
+      });
+    }
+
+    this.registerEvent(this.app.workspace.on('css-change', () => {
+      this.rebuildColorMap();
+      this.refreshEditors();
+    }));
   }
 
   onunload() {
@@ -62,3 +78,4 @@ export default class NativeHighlightPlugin extends Plugin {
     });
   }
 }
+
