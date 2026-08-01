@@ -34,9 +34,9 @@ function varsForColor(slug: string, hex: string, paletteId: string, mode: Readab
 		if (!mode) {
 			return { bg: builtinCssVar(slug), underline: builtinUnderlineCss(slug) };
 		}
-		const resolved = typeof document === 'undefined'
+		const resolved = typeof activeDocument === 'undefined'
 			? null
-			: cssColorToHex(getComputedStyle(document.body).getPropertyValue(`--color-${slug}`).trim());
+			: cssColorToHex(getComputedStyle(activeDocument.body).getPropertyValue(`--color-${slug}`).trim());
 		if (resolved) {
 			const bg = compensateForReadability(resolved, mode);
 			return { bg, underline: darkerUnderline(bg) };
@@ -47,9 +47,11 @@ function varsForColor(slug: string, hex: string, paletteId: string, mode: Readab
 	return { bg, underline: darkerUnderline(bg) };
 }
 
-/** `'dark'` when a dark Obsidian theme is active, `'light'` otherwise. */
+/** `'dark'` when a dark Obsidian theme is active, `'light'` otherwise.
+ *  Uses `activeDocument` so popout windows report their own theme instead of
+ *  always falling back to the main window's body. */
 export function getThemeMode(): ReadabilityMode {
-	return typeof document !== 'undefined' && document.body.classList.contains('theme-dark')
+	return typeof activeDocument !== 'undefined' && activeDocument.body.classList.contains('theme-dark')
 		? 'dark'
 		: 'light';
 }

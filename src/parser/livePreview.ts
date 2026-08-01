@@ -5,18 +5,12 @@ import type { HighlightColorVars } from '../settings/styleInjector';
 /** Fired by the plugin on settings save so the ViewPlugin below rebuilds its
  *  decorations even when the transaction changed neither doc, viewport, nor
  *  selection — otherwise `refreshEditors()`'s empty dispatch is a no-op and
- *  color edits don't paint until the next unrelated view update. */
+ *  color edits don't paint until the next unrelated view update. Also covers
+ *  theme changes and autoReadability toggles (all funneled through
+ *  `refreshEditors`). */
 export const refreshDecorationsEffect = StateEffect.define<void>();
 
 const HIGHLIGHT_RE = /==\{([a-z0-9][a-z0-9-]*)\}([^=\n]+(?:=[^=\n]+)*?)==/g;
-
-/**
- * StateEffect dispatched (via `refreshEditors`) to force the ViewPlugin to
- * rebuild its decorations even when no doc/viewport/selection changed — e.g.
- * after the color map was rebuilt because the dark-theme readability option
- * or the active theme changed.
- */
-export const refreshHighlightsEffect = StateEffect.define<void>();
 
 function buildDecorations(
 	view: EditorView,

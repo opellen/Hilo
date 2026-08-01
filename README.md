@@ -62,6 +62,8 @@ Assign hotkeys in **Settings → Hotkeys**. Each color row in **Settings → Hil
 - **Per-color row** — enable/disable, reorder with arrows, edit slug + hex, assign a hotkey (⌨ jumps to Obsidian's Hotkeys page), or delete.
 - Disabled colors are hidden from menus but existing highlights keep rendering.
 
+**Auto improve readability** (toggle, on by default). Compensates highlight background brightness at render time so colors stay readable on both light and dark themes: overly bright colors are darkened on dark themes, overly dark colors are brightened on light themes. Hue and saturation are preserved and the stored palette hex values are never modified. Underlined style bypasses compensation so the thin band stays visible. Toggle off to render every color exactly as stored.
+
 ### Visual styles
 
 Three ways to render highlights, switchable under **Settings → Hilo → Highlight style**:
