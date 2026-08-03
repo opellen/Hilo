@@ -1,38 +1,52 @@
 import { describe, it, expect } from 'vitest';
-import { compensateForReadability, darkerUnderline, getColorMap } from './styleInjector';
+import { compensateForReadability, themedUnderline, getColorMap } from './styleInjector';
 import type { Settings } from './data';
 
-describe('darkerUnderline', () => {
-	it('emits hsl() string with saturation 100%', () => {
-		expect(darkerUnderline('#fff3a3')).toMatch(/^hsl\(\d+ 100% \d+%\)$/);
+describe('themedUnderline', () => {
+	describe('light theme (darkened)', () => {
+		it('emits hsl() string for chromatic input', () => {
+			expect(themedUnderline('#fff3a3', 'light')).toMatch(/^hsl\(\d+ 100% \d+%\)$/);
+		});
+		it('default yellow #fff3a3 → hsl(52 100% 52%)', () => {
+			expect(themedUnderline('#fff3a3', 'light')).toBe('hsl(52 100% 52%)');
+		});
+		it('default red #ffb3b3 → hsl(0 100% 55%)', () => {
+			expect(themedUnderline('#ffb3b3', 'light')).toBe('hsl(0 100% 55%)');
+		});
+		it('default green #b3e6b3 → hsl(120 100% 50%)', () => {
+			expect(themedUnderline('#b3e6b3', 'light')).toBe('hsl(120 100% 50%)');
+		});
+		it('achromatic input uses 0% saturation, not red', () => {
+			expect(themedUnderline('#fff', 'light')).toBe('hsl(0 0% 70%)');
+		});
+		it('clamps lightness at 0 for black', () => {
+			expect(themedUnderline('#000', 'light')).toBe('hsl(0 0% 0%)');
+		});
+		it('uppercase hex normalizes correctly', () => {
+			expect(themedUnderline('#FFB3B3', 'light')).toBe('hsl(0 100% 55%)');
+		});
+		it('grey input produces grey underline, not red', () => {
+			const result = themedUnderline('#888', 'light');
+			expect(result).toBe('hsl(0 0% 23%)');
+		});
 	});
-	it('default yellow #fff3a3 → hsl(52 100% 52%)', () => {
-		expect(darkerUnderline('#fff3a3')).toBe('hsl(52 100% 52%)');
-	});
-	it('default red #ffb3b3 → hsl(0 100% 55%)', () => {
-		expect(darkerUnderline('#ffb3b3')).toBe('hsl(0 100% 55%)');
-	});
-	it('default green #b3e6b3 → hsl(120 100% 50%)', () => {
-		expect(darkerUnderline('#b3e6b3')).toBe('hsl(120 100% 50%)');
-	});
-	it('normalizes 3-digit hex (#fff → #ffffff); always emits saturation 100%', () => {
-		// Achromatic input still emits 100% saturation — visual result is identical at l=70%.
-		expect(darkerUnderline('#fff')).toBe('hsl(0 100% 70%)');
-	});
-	it('clamps lightness at 0 for black', () => {
-		expect(darkerUnderline('#000')).toBe('hsl(0 100% 0%)');
-	});
-	it('uppercase hex normalizes correctly', () => {
-		expect(darkerUnderline('#FFB3B3')).toBe('hsl(0 100% 55%)');
-	});
-	it('reduces lightness by 30 percentage points (approx)', () => {
-		// #888 = lightness ~53% → ~23%
-		const result = darkerUnderline('#888');
-		const match = result.match(/hsl\(\d+ \d+% (\d+)%\)/);
-		expect(match).not.toBeNull();
-		const l = Number(match![1]);
-		expect(l).toBeGreaterThanOrEqual(22);
-		expect(l).toBeLessThanOrEqual(24);
+	describe('dark theme (brightened)', () => {
+		it('brightens yellow', () => {
+			// #fff3a3 l~82% → 82+15 = 97% (capped at 100% test below)
+			expect(themedUnderline('#fff3a3', 'dark')).toBe('hsl(52 100% 97%)');
+		});
+		it('brightens grey instead of darkening it', () => {
+			// #888 l~53% → 53+15 = 68%
+			expect(themedUnderline('#888', 'dark')).toBe('hsl(0 0% 68%)');
+		});
+		it('brightens black', () => {
+			// #000 l~0% → 0+15 = 15%
+			expect(themedUnderline('#000', 'dark')).toBe('hsl(0 0% 15%)');
+		});
+		it('caps lightness at 100% for white', () => {
+			// #fff l=100% → 100+15 = 115% capped at 100%
+			expect(themedUnderline('#fff', 'dark')).toBe('hsl(0 0% 100%)');
+		});
 	});
 });
 
