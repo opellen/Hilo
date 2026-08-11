@@ -19,7 +19,7 @@ export default class NativeHighlightPlugin extends Plugin {
     setLocale(detectLocale());
     await this.loadSettings();
     this.rebuildColorMap();
-    applyHighlightStyle(this.settings.style);
+    applyHighlightStyle(this.settings.style, this.workspaceDocs());
     this.registerMarkdownPostProcessor(createColorMarkPostProcessor(() => this.colorMap));
     this.registerEditorExtension(createHighlightLivePreviewExtension(() => this.colorMap));
     this.registerEvent(this.app.workspace.on('editor-menu', buildContextMenuHandler(this)));
@@ -42,10 +42,16 @@ export default class NativeHighlightPlugin extends Plugin {
       this.rebuildColorMap();
       this.refreshEditors();
     }));
+
+    // New popout windows copy the main window's body classes at creation time,
+    // which may be stale — re-apply the current style to the new document.
+    this.registerEvent(this.app.workspace.on('window-open', (win) => {
+      applyHighlightStyle(this.settings.style, [win.doc]);
+    }));
   }
 
   onunload() {
-    removeHighlightStyle();
+    removeHighlightStyle(this.workspaceDocs());
   }
 
   async loadSettings() {
@@ -55,13 +61,26 @@ export default class NativeHighlightPlugin extends Plugin {
   async saveSettings() {
     await this.saveData(this.settings);
     this.rebuildColorMap();
-    applyHighlightStyle(this.settings.style);
+    applyHighlightStyle(this.settings.style, this.workspaceDocs());
     registerColorCommands(this);
     this.refreshEditors();
   }
 
   private rebuildColorMap(): void {
     this.colorMap = getColorMap(this.settings);
+  }
+
+  /** Every document that hosts notes: the main window plus any popouts.
+   *  Style body-classes must go to these — NOT `activeDocument`, which points
+   *  at the Settings window while the user interacts with it (Obsidian 1.13
+   *  made Settings a popout window; see #8). Plugins load in the main window,
+   *  so `document` here is always the main document. */
+  private workspaceDocs(): Document[] {
+    const docs = new Set<Document>([document]);
+    this.app.workspace.iterateAllLeaves((leaf) => {
+      docs.add(leaf.view.containerEl.ownerDocument);
+    });
+    return [...docs];
   }
 
   private refreshEditors(): void {

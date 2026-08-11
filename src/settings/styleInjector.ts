@@ -115,14 +115,26 @@ export function getColorMap(settings: Settings): Map<string, HighlightColorVars>
 	return map;
 }
 
-export function applyHighlightStyle(style: HighlightStyle): void {
-	removeHighlightStyle();
-	if (style === 'default') return;
-	activeDocument.body.classList.add(`${STYLE_BODY_PREFIX}${style}`);
+/** Apply the style body-class to every given document (main window + popouts).
+ *
+ *  This must NOT use `activeDocument`: since Obsidian 1.13 the Settings UI
+ *  lives in its own popout window, so during a settings interaction
+ *  `activeDocument` is the Settings window — the class would land there while
+ *  the note-hosting windows keep the stale style until an app reload (#8).
+ *  The caller (main.ts) enumerates the actual note-hosting documents. */
+export function applyHighlightStyle(style: HighlightStyle, docs: Iterable<Document>): void {
+	for (const doc of docs) {
+		removeStyleClasses(doc.body);
+		if (style === 'default') continue;
+		doc.body.classList.add(`${STYLE_BODY_PREFIX}${style}`);
+	}
 }
 
-export function removeHighlightStyle(): void {
-	const body = activeDocument.body;
+export function removeHighlightStyle(docs: Iterable<Document>): void {
+	for (const doc of docs) removeStyleClasses(doc.body);
+}
+
+function removeStyleClasses(body: HTMLElement): void {
 	for (const cls of Array.from(body.classList)) {
 		if (cls.startsWith(STYLE_BODY_PREFIX)) body.classList.remove(cls);
 	}
@@ -130,7 +142,7 @@ export function removeHighlightStyle(): void {
 
 /**
  * Compute an underline color for the given hex. On light themes the underline
- * is darkened (l - 30pp); on dark themes it is brightened (l + 30pp).
+ * is darkened (l - 30pp); on dark themes it is brightened (l + 15pp).
  * Achromatic inputs (R=G=B) always produce neutral-grey output (0% saturation),
  * avoiding the bug where hue defaults to red when max===min.
  */

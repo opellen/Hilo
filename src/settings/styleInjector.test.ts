@@ -1,6 +1,26 @@
 import { describe, it, expect } from 'vitest';
-import { compensateForReadability, themedUnderline, getColorMap } from './styleInjector';
+import {
+	applyHighlightStyle,
+	compensateForReadability,
+	getColorMap,
+	removeHighlightStyle,
+	themedUnderline,
+} from './styleInjector';
 import type { Settings } from './data';
+
+/** Minimal Document stand-in: a body with a real-enough classList. */
+function fakeDoc(initial: string[] = []): { doc: Document; classes: () => string[] } {
+	const set = new Set(initial);
+	const classList = {
+		add: (c: string) => void set.add(c),
+		remove: (c: string) => void set.delete(c),
+		[Symbol.iterator]: () => set[Symbol.iterator](),
+	};
+	return {
+		doc: { body: { classList } } as unknown as Document,
+		classes: () => [...set],
+	};
+}
 
 describe('themedUnderline', () => {
 	describe('light theme (darkened)', () => {
@@ -193,5 +213,40 @@ describe('getColorMap', () => {
 			style: 'default',
 		};
 		expect(getColorMap(settings).get('custom')?.bg).toBe('#abcdef');
+	});
+});
+
+// Regression guard for #8: since Obsidian 1.13 the Settings UI is a popout
+// window, so style classes must go to every note-hosting document passed by
+// the caller — never to just one "active" document.
+describe('applyHighlightStyle', () => {
+	it('adds the style class to every provided document', () => {
+		const a = fakeDoc();
+		const b = fakeDoc();
+		applyHighlightStyle('underlined', [a.doc, b.doc]);
+		expect(a.classes()).toContain('od-style-underlined');
+		expect(b.classes()).toContain('od-style-underlined');
+	});
+	it('replaces a stale style class on every document', () => {
+		const a = fakeDoc(['od-style-underlined']);
+		const b = fakeDoc(['od-style-underlined', 'theme-dark']);
+		applyHighlightStyle('lowlight', [a.doc, b.doc]);
+		expect(a.classes()).toEqual(['od-style-lowlight']);
+		expect(b.classes()).toEqual(['theme-dark', 'od-style-lowlight']);
+	});
+	it('default style removes without adding', () => {
+		const a = fakeDoc(['od-style-lowlight', 'obsidian-app']);
+		applyHighlightStyle('default', [a.doc]);
+		expect(a.classes()).toEqual(['obsidian-app']);
+	});
+});
+
+describe('removeHighlightStyle', () => {
+	it('strips od-style-* classes from every document, keeping others', () => {
+		const a = fakeDoc(['od-style-underlined', 'theme-dark']);
+		const b = fakeDoc(['od-style-lowlight']);
+		removeHighlightStyle([a.doc, b.doc]);
+		expect(a.classes()).toEqual(['theme-dark']);
+		expect(b.classes()).toEqual([]);
 	});
 });
