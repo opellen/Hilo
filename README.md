@@ -35,6 +35,7 @@
 ### Consistent rendering across views
 - **Source mode / Live Preview / Reading view** all render highlights identically.
 - In Live Preview the `{color}` token is hidden automatically; placing the cursor on the token reveals it for editing.
+- Prefer seeing the raw token while editing? **Settings → Hilo → Show color token in Source mode** keeps `{color}` always visible in Source mode (off by default; Live Preview is unaffected).
 
 ### Right-click context menu
 

@@ -21,7 +21,10 @@ export default class NativeHighlightPlugin extends Plugin {
     this.rebuildColorMap();
     applyHighlightStyle(this.settings.style, this.workspaceDocs());
     this.registerMarkdownPostProcessor(createColorMarkPostProcessor(() => this.colorMap));
-    this.registerEditorExtension(createHighlightLivePreviewExtension(() => this.colorMap));
+    this.registerEditorExtension(createHighlightLivePreviewExtension(
+      () => this.colorMap,
+      () => this.settings.showTokenInSource === true,
+    ));
     this.registerEvent(this.app.workspace.on('editor-menu', buildContextMenuHandler(this)));
     this.addSettingTab(new HighlightSettingTab(this.app, this));
     registerOpenPaletteCommand(this);
@@ -40,6 +43,13 @@ export default class NativeHighlightPlugin extends Plugin {
 
     this.registerEvent(this.app.workspace.on('css-change', () => {
       this.rebuildColorMap();
+      this.refreshEditors();
+    }));
+
+    // Live Preview <-> Source mode toggles swap the container's is-live-preview
+    // class without a CM6 transaction, so the source-token reveal (#5) would
+    // lag until the next doc/selection change — rebuild on layout changes.
+    this.registerEvent(this.app.workspace.on('layout-change', () => {
       this.refreshEditors();
     }));
 

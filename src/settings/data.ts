@@ -27,6 +27,12 @@ export interface Settings {
 	 * rendering — stored palette hex values are never modified. Defaults to true.
 	 */
 	autoReadability?: boolean;
+	/**
+	 * When enabled, the `{color}` token stays visible in Source mode instead of
+	 * being hidden until the cursor touches it. Live Preview keeps the
+	 * cursor-reveal behavior regardless. Defaults to false (#5).
+	 */
+	showTokenInSource?: boolean;
 }
 
 /** Soft highlight-style seeds (pastel backgrounds). */
@@ -131,6 +137,7 @@ export const DEFAULT_SETTINGS: Settings = {
 	activePalette: 'builtin',
 	style: 'default',
 	autoReadability: true,
+	showTokenInSource: false,
 };
 
 export const SLUG_RE = /^[a-z0-9][a-z0-9-]*$/;
@@ -155,6 +162,7 @@ export function migrateSettings(raw: Partial<Settings> | null | undefined): Sett
 		activePalette: DEFAULT_SETTINGS.activePalette,
 		style: DEFAULT_SETTINGS.style,
 		autoReadability: DEFAULT_SETTINGS.autoReadability,
+		showTokenInSource: DEFAULT_SETTINGS.showTokenInSource,
 	};
 
 	if (!raw) return base;
@@ -165,6 +173,10 @@ export function migrateSettings(raw: Partial<Settings> | null | undefined): Sett
 
 	if (typeof raw.autoReadability === 'boolean') {
 		base.autoReadability = raw.autoReadability;
+	}
+
+	if (typeof raw.showTokenInSource === 'boolean') {
+		base.showTokenInSource = raw.showTokenInSource;
 	}
 
 	if (Array.isArray(raw.palettes) && raw.palettes.length > 0) {

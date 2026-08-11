@@ -44,6 +44,10 @@ export const en: Locale = {
 			heading: 'Auto improve readability',
 			desc: 'Automatically compensates highlight color brightness to improve readability — darkens overly bright colors in dark themes and brightens overly dark colors in light themes.',
 		},
+		sourceToken: {
+			heading: 'Show color token in Source mode',
+			desc: 'Keep the {color} token always visible while editing in Source mode. Live Preview still reveals the token only when the cursor touches it.',
+		},
 	},
 	menu: {
 		highlight: 'Highlight',

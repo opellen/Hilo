@@ -143,6 +143,19 @@ export class HighlightSettingTab extends PluginSettingTab {
 				})();
 				});
 			});
+
+		new Setting(containerEl)
+			.setName(t('settings.sourceToken.heading'))
+			.setDesc(t('settings.sourceToken.desc'))
+			.addToggle((toggle) => {
+				toggle.setValue(this.plugin.settings.showTokenInSource === true);
+				toggle.onChange((value) => {
+					void (async () => {
+						this.plugin.settings.showTokenInSource = value;
+						await this.plugin.saveSettings();
+					})();
+				});
+			});
 	}
 
 	private getFirstColor(): HighlightColor | undefined {

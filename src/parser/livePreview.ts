@@ -12,9 +12,18 @@ export const refreshDecorationsEffect = StateEffect.define<void>();
 
 const HIGHLIGHT_RE = /==\{([a-z0-9][a-z0-9-]*)\}([^=\n]+(?:=[^=\n]+)*?)==/g;
 
+/** True when this editor is a markdown view in Source mode (not Live Preview).
+ *  Editors outside a markdown view (canvas cards, inline editors) return false
+ *  so they keep the default token-hiding behavior. */
+function isSourceModeEditor(view: EditorView): boolean {
+	const container = view.dom.closest('.markdown-source-view');
+	return container ? !container.classList.contains('is-live-preview') : false;
+}
+
 function buildDecorations(
 	view: EditorView,
 	colorMap: Map<string, HighlightColorVars>,
+	revealTokens: boolean,
 ): DecorationSet {
 	const builder = new RangeSetBuilder<Decoration>();
 
@@ -45,11 +54,12 @@ function buildDecorations(
 			// Paint the entire match (including `==` markers) so the active line shows
 			// the highlight color on the markers instead of Obsidian's default yellow.
 			builder.add(matchStart, matchEnd, Decoration.mark(markSpec));
-			// Reveal the `{color}` token when the cursor touches it so the user can edit.
+			// Reveal the `{color}` token when the cursor touches it so the user can
+			// edit — or always, when the source-mode reveal option applies (#5).
 			const overlapsCursor = view.state.selection.ranges.some(
 				r => r.to >= tokenStart && r.from <= tokenEnd,
 			);
-			if (!overlapsCursor) {
+			if (!overlapsCursor && !revealTokens) {
 				builder.add(tokenStart, tokenEnd, Decoration.replace({}));
 			}
 		}
@@ -60,19 +70,21 @@ function buildDecorations(
 
 export function createHighlightLivePreviewExtension(
 	getColors: () => Map<string, HighlightColorVars>,
+	getShowTokenInSource: () => boolean = () => false,
 ): Extension {
+	const reveal = (view: EditorView) => getShowTokenInSource() && isSourceModeEditor(view);
 	return ViewPlugin.fromClass(
 		class {
 			decorations: DecorationSet;
 			constructor(view: EditorView) {
-				this.decorations = buildDecorations(view, getColors());
+				this.decorations = buildDecorations(view, getColors(), reveal(view));
 			}
 			update(u: ViewUpdate) {
 				const settingsRefresh = u.transactions.some((tr) =>
 					tr.effects.some((e) => e.is(refreshDecorationsEffect)),
 				);
 				if (u.docChanged || u.viewportChanged || u.selectionSet || settingsRefresh) {
-					this.decorations = buildDecorations(u.view, getColors());
+					this.decorations = buildDecorations(u.view, getColors(), reveal(u.view));
 				}
 			}
 		},

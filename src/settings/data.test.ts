@@ -178,4 +178,14 @@ describe('migrateSettings', () => {
 		const s = migrateSettings({ colors: [], style: 'underlined' });
 		expect(s.style).toBe('underlined');
 	});
+	it('defaults showTokenInSource to false', () => {
+		expect(migrateSettings(null).showTokenInSource).toBe(false);
+		expect(migrateSettings({ colors: [], style: 'default' }).showTokenInSource).toBe(false);
+	});
+	it('preserves an explicit showTokenInSource=true', () => {
+		const s = migrateSettings({ palettes: [], activePalette: 'custom', style: 'default', showTokenInSource: true } as Partial<
+			import('./data').Settings
+		>);
+		expect(s.showTokenInSource).toBe(true);
+	});
 });

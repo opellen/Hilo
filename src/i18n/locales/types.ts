@@ -46,6 +46,10 @@ export interface Locale {
 			heading: string;
 			desc: string;
 		};
+		sourceToken: {
+			heading: string;
+			desc: string;
+		};
 	};
 	menu: {
 		highlight: string;
