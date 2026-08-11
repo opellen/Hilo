@@ -14,7 +14,7 @@ import {
 } from './data';
 import { commandIdForColor, getHotkeyForCommand, openHotkeyAssignment } from '../plugin/hotkeys';
 import { capitalize } from '../plugin/contextMenu';
-import { compensateForReadability, darkerUnderline, getThemeMode } from './styleInjector';
+import { compensateForReadability, themedUnderline, getThemeMode } from './styleInjector';
 import { t } from '../i18n';
 
 const STYLES: HighlightStyle[] = ['default', 'lowlight', 'underlined'];
@@ -115,7 +115,7 @@ export class HighlightSettingTab extends PluginSettingTab {
 					? color.hex
 					: compensateForReadability(color.hex, mode);
 				el.style.setProperty('--hl-bg', compensated);
-				el.style.setProperty('--hl-underline', darkerUnderline(compensated));
+				el.style.setProperty('--hl-underline', themedUnderline(color.hex, mode));
 			}
 		};
 		for (const style of STYLES) {

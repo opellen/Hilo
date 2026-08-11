@@ -24,27 +24,19 @@ export interface HighlightColorVars {
 }
 
 function varsForColor(slug: string, hex: string, paletteId: string, mode: ReadabilityMode | null): HighlightColorVars {
-	// Locked builtin rows normally use live Obsidian theme tokens. Those tokens
-	// are tuned for accent *text*, so as a highlight *fill* they can be too
-	// bright (dark theme) or too dark (light theme) — resolve the token to a
-	// concrete hex and run it through the same HSV compensation as custom
-	// colors. When compensation is off we keep the raw CSS var so it tracks
-	// the theme live.
+	const themeMode = getThemeMode();
 	if (paletteId === 'builtin' && isBuiltinColorSlug(slug)) {
-		if (!mode) {
-			return { bg: builtinCssVar(slug), underline: builtinUnderlineCss(slug) };
-		}
 		const resolved = typeof activeDocument === 'undefined'
 			? null
 			: cssColorToHex(getComputedStyle(activeDocument.body).getPropertyValue(`--color-${slug}`).trim());
 		if (resolved) {
-			const bg = compensateForReadability(resolved, mode);
-			return { bg, underline: darkerUnderline(bg) };
+			const bg = mode ? compensateForReadability(resolved, mode) : builtinCssVar(slug);
+			return { bg, underline: themedUnderline(resolved, themeMode) };
 		}
 		return { bg: builtinCssVar(slug), underline: builtinUnderlineCss(slug) };
 	}
 	const bg = mode ? compensateForReadability(hex, mode) : hex;
-	return { bg, underline: darkerUnderline(bg) };
+	return { bg, underline: themedUnderline(hex, themeMode) };
 }
 
 /** `'dark'` when a dark Obsidian theme is active, `'light'` otherwise.
@@ -136,22 +128,29 @@ export function removeHighlightStyle(): void {
 	}
 }
 
-// Lightness drop 30% + saturation 100% — matches iA Writer bg/underline pair (#FAECA0 → #FFD900).
-export function darkerUnderline(hex: string): string {
+/**
+ * Compute an underline color for the given hex. On light themes the underline
+ * is darkened (l - 30pp); on dark themes it is brightened (l + 30pp).
+ * Achromatic inputs (R=G=B) always produce neutral-grey output (0% saturation),
+ * avoiding the bug where hue defaults to red when max===min.
+ */
+export function themedUnderline(hex: string, mode: ReadabilityMode): string {
 	const norm = hex.length === 4 ? `#${hex[1]}${hex[1]}${hex[2]}${hex[2]}${hex[3]}${hex[3]}` : hex;
 	const r = parseInt(norm.slice(1, 3), 16) / 255;
 	const g = parseInt(norm.slice(3, 5), 16) / 255;
 	const b = parseInt(norm.slice(5, 7), 16) / 255;
 	const max = Math.max(r, g, b);
 	const min = Math.min(r, g, b);
+	const isAchromatic = max === min;
 	const l = (max + min) / 2;
 	let h = 0;
-	if (max !== min) {
+	if (!isAchromatic) {
 		const d = max - min;
 		if (max === r) h = ((g - b) / d + (g < b ? 6 : 0)) / 6;
 		else if (max === g) h = ((b - r) / d + 2) / 6;
 		else h = ((r - g) / d + 4) / 6;
 	}
-	const newL = Math.max(0, l - 0.3);
-	return `hsl(${Math.round(h * 360)} 100% ${Math.round(newL * 100)}%)`;
+	const sat = isAchromatic ? 0 : 100;
+	const newL = mode === 'dark' ? Math.min(1, l + 0.15) : Math.max(0, l - 0.3);
+	return `hsl(${Math.round(h * 360)} ${sat}% ${Math.round(newL * 100)}%)`;
 }
