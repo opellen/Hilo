@@ -17,7 +17,7 @@ import { capitalize } from '../plugin/contextMenu';
 import { compensateForReadability, themedUnderline, getThemeMode } from './styleInjector';
 import { t } from '../i18n';
 
-const STYLES: HighlightStyle[] = ['default', 'lowlight', 'underlined'];
+const STYLES: HighlightStyle[] = ['default', 'lowlight', 'underlined', 'rounded'];
 
 // TODO: PluginSettingTab.display() is deprecated since Obsidian 1.13.0 in favor
 // of getSettingDefinitions(). Migrate when manifest.minAppVersion is raised to
@@ -94,6 +94,7 @@ export class HighlightSettingTab extends PluginSettingTab {
 				dd.addOption('default', t('settings.style.options.default'));
 				dd.addOption('lowlight', t('settings.style.options.lowlight'));
 				dd.addOption('underlined', t('settings.style.options.underlined'));
+				dd.addOption('rounded', t('settings.style.options.rounded'));
 				dd.setValue(this.plugin.settings.style);
 				dd.onChange((value) => {
 					void (async () => {

@@ -178,6 +178,18 @@ describe('migrateSettings', () => {
 		const s = migrateSettings({ colors: [], style: 'underlined' });
 		expect(s.style).toBe('underlined');
 	});
+	it('preserves rounded style from legacy saves', () => {
+		const s = migrateSettings({ colors: [], style: 'rounded' });
+		expect(s.style).toBe('rounded');
+	});
+	it('preserves rounded style in palettes shape', () => {
+		const s = migrateSettings({ palettes: [], activePalette: 'custom', style: 'rounded' } as Partial<import('./data').Settings>);
+		expect(s.style).toBe('rounded');
+	});
+	it('falls back to default for an unknown style', () => {
+		const s = migrateSettings({ colors: [], style: 'bogus' } as unknown as Partial<import('./data').Settings>);
+		expect(s.style).toBe('default');
+	});
 	it('defaults showTokenInSource to false', () => {
 		expect(migrateSettings(null).showTokenInSource).toBe(false);
 		expect(migrateSettings({ colors: [], style: 'default' }).showTokenInSource).toBe(false);

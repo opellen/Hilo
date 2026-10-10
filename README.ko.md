@@ -67,7 +67,7 @@
 
 ### 시각 스타일
 
-설정 → Hilo → Highlight style에서 세 가지 렌더 방식 중 선택:
+설정 → Hilo → Highlight style에서 네 가지 렌더 방식 중 선택:
 
 - **Default (solid)** — 텍스트 전체 영역을 색으로 채우는 클래식 형광펜 스타일.
 
@@ -80,6 +80,8 @@
 - **Underlined** — 배경 없이 텍스트 하단만 얇은 컬러 밴드. Light/dark 테마 모두 자연스러움.
 
   ![Underlined — 배경 없이 하단 컬러 밴드만](assets/screenshots/demo-06-style-underlined.png)
+
+- **Rounded** — 모서리가 둥근 사각형 배경으로 채우는 스타일입니다. 안쪽에 굵게나 취소선이 있어도 하나로 이어져 보이고, 여러 줄로 넘어가면 줄마다 둥근 끝이 생깁니다.
 
 Lowlight/Underlined 둘 다 `box-shadow`로 컬러 밴드를 렌더 — `text-decoration`이 Chromium spellcheck에 override되는 문제 회피.
 
@@ -156,6 +158,11 @@ Hilo의 출력 포맷은 `=={색상이름}내용==` 인라인 형식 한 가지�
 - 배경색 + 색상별 darker underline 조합
 - 가독성을 유지하면서 색상별 강조 강도를 자연스럽게 표현
 - 모든 색상에 자동 적용되며 색상을 추가/변경할 때마다 underline 색이 자동 재계산됩니다
+
+### Rounded
+- 모서리가 둥근 사각형 배경 (padding `0.125em 0.15em`, radius `0.2em`)으로 Highlightr와 같은 값을 씁니다
+- 안쪽에 굵게나 취소선이 있어도 하나로 이어져 보입니다
+- 여러 줄로 넘어가면 줄마다 둥근 끝이 생깁니다
 
 설정 → Hilo → **Highlight style** 드롭다운에서 선택.
 

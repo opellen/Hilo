@@ -5,7 +5,7 @@ export interface HighlightColor {
 	enabled: boolean;
 }
 
-export type HighlightStyle = 'default' | 'lowlight' | 'underlined';
+export type HighlightStyle = 'default' | 'lowlight' | 'underlined' | 'rounded';
 
 export type PaletteId = 'custom' | 'builtin';
 
@@ -167,7 +167,7 @@ export function migrateSettings(raw: Partial<Settings> | null | undefined): Sett
 
 	if (!raw) return base;
 
-	if (raw.style === 'default' || raw.style === 'lowlight' || raw.style === 'underlined') {
+	if (raw.style === 'default' || raw.style === 'lowlight' || raw.style === 'underlined' || raw.style === 'rounded') {
 		base.style = raw.style;
 	}
 

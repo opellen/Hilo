@@ -1,5 +1,5 @@
 import { Decoration, DecorationSet, EditorView, ViewPlugin, ViewUpdate } from '@codemirror/view';
-import { RangeSetBuilder, StateEffect, type Extension } from '@codemirror/state';
+import { RangeSet, RangeSetBuilder, StateEffect, type Extension, type Text } from '@codemirror/state';
 import type { HighlightColorVars } from '../settings/styleInjector';
 
 /** Fired by the plugin on settings save so the ViewPlugin below rebuilds its
@@ -20,14 +20,48 @@ function isSourceModeEditor(view: EditorView): boolean {
 	return container ? !container.classList.contains('is-live-preview') : false;
 }
 
+/** Expands each range to full line boundaries and merges overlapping/touching
+ *  ones. `view.visibleRanges` is split at every state-field replace decoration
+ *  of 20+ chars (e.g. image embeds, issue #10), so matching per raw range would
+ *  cut a highlight straddling the widget. `HIGHLIGHT_RE` never crosses `\n`,
+ *  so line-aligned ranges can't cut a match; merging avoids duplicate matches
+ *  (and RangeSetBuilder ordering errors). Input must be sorted. */
+export function lineAlignedRanges(
+	doc: Text,
+	ranges: readonly { from: number; to: number }[],
+): { from: number; to: number }[] {
+	const out: { from: number; to: number }[] = [];
+	for (const r of ranges) {
+		const from = doc.lineAt(r.from).from;
+		const to = doc.lineAt(r.to).to;
+		const last = out[out.length - 1];
+		if (last && from <= last.to) {
+			last.to = Math.max(last.to, to);
+		} else {
+			out.push({ from, to });
+		}
+	}
+	return out;
+}
+
+interface HighlightDecorations {
+	/** Color marks — fed to `EditorView.outerDecorations` so each highlight
+	 *  renders as one element wrapping Obsidian's syntax spans instead of being
+	 *  split at every inner formatting boundary (#9). */
+	marks: DecorationSet;
+	/** `{color}` token hides — regular decorations. */
+	hides: DecorationSet;
+}
+
 function buildDecorations(
 	view: EditorView,
 	colorMap: Map<string, HighlightColorVars>,
 	revealTokens: boolean,
-): DecorationSet {
-	const builder = new RangeSetBuilder<Decoration>();
+): HighlightDecorations {
+	const marks = new RangeSetBuilder<Decoration>();
+	const hides = new RangeSetBuilder<Decoration>();
 
-	for (const { from, to } of view.visibleRanges) {
+	for (const { from, to } of lineAlignedRanges(view.state.doc, view.visibleRanges)) {
 		const text = view.state.doc.sliceString(from, to);
 		HIGHLIGHT_RE.lastIndex = 0;
 		let match: RegExpExecArray | null;
@@ -53,19 +87,19 @@ function buildDecorations(
 
 			// Paint the entire match (including `==` markers) so the active line shows
 			// the highlight color on the markers instead of Obsidian's default yellow.
-			builder.add(matchStart, matchEnd, Decoration.mark(markSpec));
+			marks.add(matchStart, matchEnd, Decoration.mark(markSpec));
 			// Reveal the `{color}` token when the cursor touches it so the user can
 			// edit — or always, when the source-mode reveal option applies (#5).
 			const overlapsCursor = view.state.selection.ranges.some(
 				r => r.to >= tokenStart && r.from <= tokenEnd,
 			);
 			if (!overlapsCursor && !revealTokens) {
-				builder.add(tokenStart, tokenEnd, Decoration.replace({}));
+				hides.add(tokenStart, tokenEnd, Decoration.replace({}));
 			}
 		}
 	}
 
-	return builder.finish();
+	return { marks: marks.finish(), hides: hides.finish() };
 }
 
 export function createHighlightLivePreviewExtension(
@@ -73,22 +107,30 @@ export function createHighlightLivePreviewExtension(
 	getShowTokenInSource: () => boolean = () => false,
 ): Extension {
 	const reveal = (view: EditorView) => getShowTokenInSource() && isSourceModeEditor(view);
+	const outer = (EditorView as Partial<typeof EditorView>).outerDecorations;
 	return ViewPlugin.fromClass(
 		class {
-			decorations: DecorationSet;
+			deco: HighlightDecorations;
 			constructor(view: EditorView) {
-				this.decorations = buildDecorations(view, getColors(), reveal(view));
+				this.deco = buildDecorations(view, getColors(), reveal(view));
 			}
 			update(u: ViewUpdate) {
 				const settingsRefresh = u.transactions.some((tr) =>
 					tr.effects.some((e) => e.is(refreshDecorationsEffect)),
 				);
 				if (u.docChanged || u.viewportChanged || u.selectionSet || settingsRefresh) {
-					this.decorations = buildDecorations(u.view, getColors(), reveal(u.view));
+					this.deco = buildDecorations(u.view, getColors(), reveal(u.view));
 				}
 			}
 		},
-		{ decorations: v => v.decorations },
+		{
+			// `outerDecorations` arrived in @codemirror/view 6.23; older Obsidian
+			// builds fall back to regular decorations (marks fragment again, but
+			// the plugin still loads).
+			decorations: v => outer ? v.deco.hides : RangeSet.join([v.deco.marks, v.deco.hides]),
+			provide: outer
+				? plugin => outer.of(view => view.plugin(plugin)?.deco.marks ?? Decoration.none)
+				: undefined,
+		},
 	);
 }
-

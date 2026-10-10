@@ -50,45 +50,32 @@
 
 /* Inline-CSS-variable highlight rendering. Each highlight element carries
    style="--hl-bg: …; --hl-underline: …;" injected by livePreview/readingView. */
-.cm-highlight[style*="--hl-bg"],
 mark[class*="hl-"],
 span[class*="hl-"] {
   background: var(--hl-bg);
 }
 
-/* Neutralize Obsidian's native highlight background so it doesn't bleed
-   through the Underlined style's transparent upper region. Scoped to that
-   style only — Default/Lowlight paint a solid fill that already covers the
-   native background, so no neutralizer needed there. Only non-slugged
-   `==text==` highlights keep their native yellow (intentional — we don't
-   want to erase highlights the plugin didn't put there).
+/* Live Preview renders the hl-* mark through `EditorView.outerDecorations`,
+   so each highlight is ONE element wrapping Obsidian's own syntax spans (#9).
+   Those inner spans still carry the native translucent ==text== background,
+   which would tint our color, so clear it. Must out-specify Obsidian's
+   `.cm-s-obsidian span.cm-highlight`. Non-slugged ==text== has no hl-*
+   ancestor and keeps its native look. */
+.cm-s-obsidian [class*="hl-"] span.cm-highlight,
+.cm-s-obsidian [class*="hl-"] span.cm-formatting-highlight {
+  background-color: transparent;
+}
 
-   The :has() variants target the case where CM6 wraps a `.cm-highlight`
-   parent AROUND our hl-* decoration. That was the shape shown in the
-   underlined-style PR's before/after screenshots (link in the PR review);
-   removing :has() reintroduces the bleed. The other selectors cover the
-   sibling shapes (hl-* on the same element, hl-* as ancestor, reading-view
-   mark).
-
-   The marketplace bot flags :has() as a performance concern (broad selector
-   invalidation). Scoping to `body.od-style-underlined` limits the concern
-   to sessions with that style active. The trade-off is deliberate and
-   verified empirically. */
-body.od-style-underlined .cm-highlight[class*="hl-"],
-body.od-style-underlined .cm-formatting-highlight[class*="hl-"],
-body.od-style-underlined .cm-highlight:has([class*="hl-"]),
-body.od-style-underlined .cm-formatting-highlight:has([class*="hl-"]),
-body.od-style-underlined [class*="hl-"] .cm-highlight,
-body.od-style-underlined [class*="hl-"] .cm-formatting-highlight,
+/* Underlined paints only a bottom band, so the reading-view mark must not
+   keep a background of its own. (Live Preview's inner native spans are
+   cleared by the shared rule above.) */
 body.od-style-underlined .markdown-preview-view mark[class*="hl-"] {
   background-color: transparent;
 }
 
 
 body.od-style-lowlight mark[class*="hl-"],
-body.od-style-lowlight .cm-highlight [class*="hl-"],
-body.od-style-lowlight span[class*="hl-"],
-body.od-style-lowlight .cm-highlight[style*="--hl-underline"] {
+body.od-style-lowlight span[class*="hl-"] {
   color: var(--text-normal);
   box-shadow: inset 0 -0.2em 0 var(--hl-underline, currentColor);
 }
@@ -98,10 +85,22 @@ body.od-style-lowlight .cm-highlight[style*="--hl-underline"] {
    renders correctly per line box on wrapped inline text without needing
    `box-decoration-break`. */
 body.od-style-underlined mark[class*="hl-"],
-body.od-style-underlined .cm-highlight[style*="--hl-bg"],
 body.od-style-underlined span[class*="hl-"] {
   background: none !important;
   box-shadow: inset 0 -0.22em 0 var(--hl-bg, currentColor);
+}
+
+/* Rounded — Highlightr's rounded values. In Live Preview each highlight is a
+   single outer hl-* span (outerDecorations), so padding/radius apply once per
+   highlight even with inline markdown inside; `clone` closes every wrapped
+   line box with its own rounded ends, as Highlightr does. */
+body.od-style-rounded mark[class*="hl-"],
+body.od-style-rounded .cm-line [class*="hl-"] {
+  margin: 0 -0.05em;
+  padding: 0.125em 0.15em;
+  border-radius: 0.2em;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
 }
 
 .od-setting-note {
@@ -132,6 +131,10 @@ body.od-style-underlined span[class*="hl-"] {
 .od-style-demo.od-style-lowlight .od-preview-sample {
   background: var(--hl-bg);
   box-shadow: inset 0 -0.2em 0 var(--hl-underline, currentColor);
+}
+.od-style-demo.od-style-rounded .od-preview-sample {
+  padding: 0.125em 0.15em;
+  border-radius: 0.2em;
 }
 .od-style-demo.od-style-underlined .od-preview-sample {
   background: linear-gradient(

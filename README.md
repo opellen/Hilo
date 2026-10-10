@@ -67,7 +67,7 @@ Assign hotkeys in **Settings → Hotkeys**. Each color row in **Settings → Hil
 
 ### Visual styles
 
-Three ways to render highlights, switchable under **Settings → Hilo → Highlight style**:
+Four ways to render highlights, switchable under **Settings → Hilo → Highlight style**:
 
 - **Default (solid)** — the color fills the whole text region, like a classic highlighter marker.
 
@@ -80,6 +80,8 @@ Three ways to render highlights, switchable under **Settings → Hilo → Highli
 - **Underlined** — a thin band of color at the bottom of the text, no fill. Works cleanly on both light and dark themes.
 
   ![Underlined style — no fill, colored band only at the bottom edge](assets/screenshots/demo-06-style-underlined.png)
+
+- **Rounded** — a solid fill with rounded corners, like Highlightr's rounded look. It stays one piece even with bold or strikethrough inside, and each wrapped line gets its own rounded ends.
 
 Both Lowlight and Underlined use `box-shadow` for the color band instead of `text-decoration`, so they aren't overridden by Chromium's spellcheck.
 
@@ -154,6 +156,11 @@ The configured background color fills the entire highlight area.
 - Subtle background tint plus a per-color darker underline
 - Readable while still clearly differentiated by color
 - Underline color is recomputed automatically whenever you add or edit a color
+
+### Rounded
+- Solid fill with rounded corners (padding `0.125em 0.15em`, radius `0.2em`), matching Highlightr
+- Stays one piece even with bold or strikethrough inside
+- Each wrapped line gets its own rounded ends
 
 Set under **Settings → Hilo → Highlight style**.
 

@@ -40,6 +40,7 @@ export interface Locale {
 				default: string;
 				lowlight: string;
 				underlined: string;
+				rounded: string;
 			};
 		};
 		readability: {

@@ -38,6 +38,7 @@ export const en: Locale = {
 				default: 'Default (solid)',
 				lowlight: 'Lowlight (iA Writer)',
 				underlined: 'Underlined',
+				rounded: 'Rounded',
 			},
 		},
 		readability: {

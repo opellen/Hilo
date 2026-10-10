@@ -38,6 +38,7 @@ export const ko: Locale = {
 				default: '기본 (솔리드)',
 				lowlight: '로우라이트 (iA Writer)',
 				underlined: '언더라인',
+				rounded: '둥근 모서리',
 			},
 		},
 		readability: {
